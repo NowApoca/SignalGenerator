@@ -1,16 +1,16 @@
 #define DAC1 25
-int DACresolution = 256;
-float plusDAC = 1/(float(DACresolution));
-float n = 0;
 float vOutput = 3.3;
-bool pulseState = false;
+const int DACresolution = 256;
 volatile int interruptCounter;
 int totalInterruptCounter;
+float sineValues[DACresolution];
+
  
 hw_timer_t * timer = NULL;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
  
 void IRAM_ATTR sineTimer() {
+  static float n = 0; 
   portENTER_CRITICAL_ISR(&timerMux);
   n = n + plusDAC;
   if(n>1) n = 0;
@@ -20,6 +20,7 @@ void IRAM_ATTR sineTimer() {
 
 void IRAM_ATTR pulseTimer() {
   portENTER_CRITICAL_ISR(&timerMux);
+  static bool pulseState = false;
   if(pulseState){
     pulseState = false;
     digitalWrite(DAC1,HIGH);
@@ -42,6 +43,7 @@ Serial.begin(115200);
   timerAttachInterrupt(timer, &onTimer, true);
   timerAlarmWrite(timer, 10, true);
   timerAlarmEnable(timer);
+  initializeSineArray()
 }
 
 void loop() { // Generate a Sine wave
@@ -61,4 +63,15 @@ void loop() { // Generate a Sine wave
 
 float degToRad(float deg){
   return deg*100000 / 57296;
+}
+
+void initializeSineArray(){
+  float plusDAC = 1/(float(DACresolution));
+  float degValue = 0;
+  int actPosition = 0;
+  for(; actPosition > DACresolution ; actPosition--){
+  degValue = degValue + plusDAC;
+  if(degValue>1) degValue = 0;
+  sineValues[actPosition] = int((float(DACresolution)*sin(degToRad(degValue))));
+  }
 }
