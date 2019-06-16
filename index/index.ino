@@ -2,18 +2,27 @@
 float vOutput = 3.3;
 const int DACresolution = 256;
 volatile int interruptCounter;
-int totalInterruptCounter;
+bool firstOn = true;
+bool sineOn = false;
 float sineValues[DACresolution];
 float triangularValues[DACresolution];
+int busFq = 80000000;
 
- 
 hw_timer_t * timer = NULL;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
  
-void IRAM_ATTR sineTimer() {
+void IRAM_ATTR settedUpFunctionsTimer(){
   static float actualValueCount = 0; 
   portENTER_CRITICAL_ISR(&timerMux);
-  dacWrite(DAC1, sineValues[actualValueCount]);
+  if(firstOn){
+    actualValueCount = 0;
+    firstOn = false;
+  }
+  if(sineOn){
+    dacWrite(DAC1, sineValues[actualValueCount]); 
+  }else{
+    dacWrite(DAC1, triangularValues[actualValueCount]); 
+  }
   actualValueCount++;
   if(actualValueCount>DACresolution) actualValueCount = 0;
   portEXIT_CRITICAL_ISR(&timerMux);
@@ -32,37 +41,37 @@ void IRAM_ATTR pulseTimer() {
   portEXIT_CRITICAL_ISR(&timerMux);
 }
 
-void IRAM_ATTR triangularTimer() {
-  portENTER_CRITICAL_ISR(&timerMux);
-  interruptCounter++;
-  portEXIT_CRITICAL_ISR(&timerMux);
-}
-
 void setup() {
-Serial.begin(115200);
-  timer = timerBegin(0, 10, true);
-  timerAttachInterrupt(timer, &onTimer, true);
-  timerAlarmWrite(timer, 10, true);
-  timerAlarmEnable(timer);
+  Serial.begin(115200);
   initializeSineArray()
 }
 
 void loop() { // Generate a Sine wave
- if (interruptCounter > 0) {
- 
-    portENTER_CRITICAL(&timerMux);
-    interruptCounter--;
-    portEXIT_CRITICAL(&timerMux);
- 
-    totalInterruptCounter++;
- 
-    Serial.print("An interrupt as occurred. Total number: ");
-    Serial.println(totalInterruptCounter);
- 
-  }
+  // if(firstOn){
+  //   sineOn(1000);
+  // }
+}
+
+void initializeTimer(int fq){
+  timer = timerBegin(0, int(busFq/fq), true);
+  timerAttachInterrupt(timer, &onTimer, true);
+  timerAlarmWrite(timer, 1, true);
+  timerAlarmEnable(timer);
 }
 
 float degToRad(float deg){
+  return deg*100000 / 57296;
+}
+
+int sineOn(float deg){
+  return deg*100000 / 57296;
+}
+
+int pulseOn(float deg){
+  return deg*100000 / 57296;
+}
+
+int triangularOn(float deg){
   return deg*100000 / 57296;
 }
 
