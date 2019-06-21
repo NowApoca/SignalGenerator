@@ -62,8 +62,6 @@ void loop() { // Generate a Sine wave
   if(Serial.available() > 0){
     receiveData();
   }
-  delay(1000);
-  Serial.print("Hola Manu");
 }
 
 void initializeTimer(int fq){
@@ -125,6 +123,7 @@ void receiveData() {
     receivedChar = Serial.read();
     if (receivedChar == endMarker) {
       data[ndx] = '\0'; // end current message
+      Serial.print(data);
       return;
     }
     // looks like a valid message char, so append it and
